@@ -1,3 +1,6 @@
+(In progress DO NOT USE IT) 
+## AlphaResearch is an AI-powered financial research platform that helps investors, analysts, and financial professionals research companies, analyze financial data, and generate investment insights — faster than doing it manually.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
