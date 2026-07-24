@@ -24,7 +24,7 @@ Dependencies point DOWN only. Never import from a layer above.
 
 | Technology  | Role                 | Layer          |
 | ----------- | -------------------- | -------------- |
-| Next.js 15  | Full-stack framework | All            |
+| Next.js 16  | Full-stack framework | All            |
 | React 19    | UI rendering         | Frontend       |
 | TailwindCSS | Styling              | Frontend       |
 | shadcn/ui   | Component library    | Frontend       |
@@ -48,10 +48,10 @@ Dependencies point DOWN only. Never import from a layer above.
 
 | Phase | Name                         | Status  |
 | ----- | ---------------------------- | ------- |
-| 1     | Foundation & Planning        | Current |
-| 2     | Project Bootstrap & Infra    | Next    |
-| 3     | Authentication               | Planned |
-| 4     | Company Data & Financial API | Planned |
+| 1     | Foundation & Planning        | Done    |
+| 2     | Project Bootstrap & Infra    | Done    |
+| 3     | Authentication               | Done    |
+| 4     | Company Data & Financial API | Next    |
 | 5     | AI Research Chat (MVP done)  | Planned |
 | 6     | Workspaces & Organization    | Planned |
 | 7     | Observability & Hardening    | Planned |
