@@ -66,6 +66,7 @@ Dependencies point **down only**. The frontend never accesses the database direc
 - Login and register forms with error handling and loading states
 - Dashboard layout with header, user nav, and sign-out
 - Landing page with AlphaResearch branding
+- Dark/light theme toggle (`next-themes`) with system preference detection
 - Initial database migration (all 12 schema tables)
 
 ## Project Structure
@@ -82,6 +83,8 @@ src/
     auth/                # Login and register form components
     layout/              # User nav, headers
     ui/                  # shadcn/ui primitives (button, card, input, label, separator)
+    theme-provider.tsx   # next-themes wrapper (class-based dark mode)
+    theme-toggle.tsx     # Dark/light theme toggle button
   lib/
     auth-client.ts       # Client-side auth SDK
     auth-server.ts       # Server-side session helper
