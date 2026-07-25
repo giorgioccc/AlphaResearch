@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
 
@@ -5,10 +8,22 @@ CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
 CREATE TYPE "SubscriptionPlan" AS ENUM ('FREE', 'PRO', 'ENTERPRISE');
 
 -- CreateEnum
+CREATE TYPE "AuditAction" AS ENUM ('USER_ROLE_CHANGED', 'USER_PLAN_CHANGED', 'USER_DELETED', 'REPORT_DELETED', 'CONVERSATION_DELETED', 'NOTE_DELETED', 'DATA_EXPORTED');
+
+-- CreateEnum
 CREATE TYPE "StatementType" AS ENUM ('INCOME_STATEMENT', 'BALANCE_SHEET', 'CASH_FLOW');
 
 -- CreateEnum
 CREATE TYPE "ReportingPeriod" AS ENUM ('ANNUAL', 'QUARTERLY');
+
+-- CreateEnum
+CREATE TYPE "NewsSentiment" AS ENUM ('POSITIVE', 'NEGATIVE', 'NEUTRAL', 'MIXED');
+
+-- CreateEnum
+CREATE TYPE "SyncDataType" AS ENUM ('STOCK_PRICES', 'FINANCIAL_DATA', 'NEWS', 'COMPANY_PROFILE');
+
+-- CreateEnum
+CREATE TYPE "SyncStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED');
 
 -- CreateEnum
 CREATE TYPE "MessageRole" AS ENUM ('USER', 'ASSISTANT', 'SYSTEM');
@@ -77,9 +92,23 @@ CREATE TABLE "verifications" (
 );
 
 -- CreateTable
+CREATE TABLE "audit_logs" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "actorId" TEXT NOT NULL,
+    "action" "AuditAction" NOT NULL,
+    "metadata" JSONB,
+    "ipAddress" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "companies" (
     "id" TEXT NOT NULL,
     "ticker" TEXT NOT NULL,
+    "cik" TEXT,
     "name" TEXT NOT NULL,
     "exchange" TEXT NOT NULL,
     "sector" TEXT,
@@ -103,6 +132,7 @@ CREATE TABLE "financial_data" (
     "period" "ReportingPeriod" NOT NULL,
     "date" DATE NOT NULL,
     "data" JSONB NOT NULL,
+    "source" TEXT NOT NULL,
     "fetchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "financial_data_pkey" PRIMARY KEY ("id")
@@ -118,9 +148,51 @@ CREATE TABLE "stock_prices" (
     "low" DECIMAL(12,4) NOT NULL,
     "close" DECIMAL(12,4) NOT NULL,
     "volume" BIGINT NOT NULL,
+    "source" TEXT NOT NULL,
     "fetchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "stock_prices_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "news_articles" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "summary" TEXT,
+    "url" TEXT NOT NULL,
+    "sourceName" TEXT NOT NULL,
+    "sentiment" "NewsSentiment",
+    "sentimentScore" DOUBLE PRECISION,
+    "imageUrl" TEXT,
+    "publishedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "news_articles_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "company_news_articles" (
+    "newsArticleId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "company_news_articles_pkey" PRIMARY KEY ("newsArticleId","companyId")
+);
+
+-- CreateTable
+CREATE TABLE "data_sync_logs" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "dataType" "SyncDataType" NOT NULL,
+    "status" "SyncStatus" NOT NULL DEFAULT 'PENDING',
+    "lastSyncedAt" TIMESTAMP(3),
+    "nextSyncAt" TIMESTAMP(3),
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
+    "errorMessage" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "data_sync_logs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -130,6 +202,7 @@ CREATE TABLE "conversations" (
     "companyId" TEXT,
     "workspaceId" TEXT,
     "title" TEXT NOT NULL,
+    "deletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -143,6 +216,8 @@ CREATE TABLE "messages" (
     "role" "MessageRole" NOT NULL,
     "content" TEXT NOT NULL,
     "citations" JSONB,
+    "inputTokens" INTEGER,
+    "outputTokens" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "messages_pkey" PRIMARY KEY ("id")
@@ -157,6 +232,8 @@ CREATE TABLE "reports" (
     "status" "ReportStatus" NOT NULL DEFAULT 'PENDING',
     "content" TEXT,
     "error" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "deletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -192,6 +269,7 @@ CREATE TABLE "notes" (
     "companyId" TEXT,
     "title" TEXT,
     "content" TEXT NOT NULL,
+    "deletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -208,13 +286,22 @@ CREATE UNIQUE INDEX "sessions_token_key" ON "sessions"("token");
 CREATE INDEX "sessions_userId_idx" ON "sessions"("userId");
 
 -- CreateIndex
-CREATE INDEX "sessions_token_idx" ON "sessions"("token");
-
--- CreateIndex
 CREATE INDEX "accounts_userId_idx" ON "accounts"("userId");
 
 -- CreateIndex
+CREATE INDEX "audit_logs_userId_idx" ON "audit_logs"("userId");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_action_idx" ON "audit_logs"("action");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_createdAt_idx" ON "audit_logs"("createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "companies_ticker_key" ON "companies"("ticker");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "companies_cik_key" ON "companies"("cik");
 
 -- CreateIndex
 CREATE INDEX "companies_ticker_idx" ON "companies"("ticker");
@@ -229,13 +316,34 @@ CREATE INDEX "financial_data_companyId_idx" ON "financial_data"("companyId");
 CREATE UNIQUE INDEX "financial_data_companyId_type_period_date_key" ON "financial_data"("companyId", "type", "period", "date");
 
 -- CreateIndex
-CREATE INDEX "stock_prices_companyId_idx" ON "stock_prices"("companyId");
+CREATE INDEX "stock_prices_companyId_date_idx" ON "stock_prices"("companyId", "date");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "stock_prices_companyId_date_key" ON "stock_prices"("companyId", "date");
 
 -- CreateIndex
-CREATE INDEX "conversations_userId_idx" ON "conversations"("userId");
+CREATE UNIQUE INDEX "news_articles_url_key" ON "news_articles"("url");
+
+-- CreateIndex
+CREATE INDEX "news_articles_publishedAt_idx" ON "news_articles"("publishedAt");
+
+-- CreateIndex
+CREATE INDEX "news_articles_sourceName_idx" ON "news_articles"("sourceName");
+
+-- CreateIndex
+CREATE INDEX "company_news_articles_companyId_idx" ON "company_news_articles"("companyId");
+
+-- CreateIndex
+CREATE INDEX "data_sync_logs_status_idx" ON "data_sync_logs"("status");
+
+-- CreateIndex
+CREATE INDEX "data_sync_logs_nextSyncAt_idx" ON "data_sync_logs"("nextSyncAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "data_sync_logs_companyId_dataType_key" ON "data_sync_logs"("companyId", "dataType");
+
+-- CreateIndex
+CREATE INDEX "conversations_userId_updatedAt_idx" ON "conversations"("userId", "updatedAt");
 
 -- CreateIndex
 CREATE INDEX "conversations_companyId_idx" ON "conversations"("companyId");
@@ -258,6 +366,9 @@ CREATE UNIQUE INDEX "saved_companies_workspaceId_companyId_key" ON "saved_compan
 -- CreateIndex
 CREATE INDEX "notes_workspaceId_idx" ON "notes"("workspaceId");
 
+-- CreateIndex
+CREATE INDEX "notes_companyId_idx" ON "notes"("companyId");
+
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -265,10 +376,22 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userI
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "financial_data" ADD CONSTRAINT "financial_data_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stock_prices" ADD CONSTRAINT "stock_prices_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_news_articles" ADD CONSTRAINT "company_news_articles_newsArticleId_fkey" FOREIGN KEY ("newsArticleId") REFERENCES "news_articles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_news_articles" ADD CONSTRAINT "company_news_articles_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "data_sync_logs" ADD CONSTRAINT "data_sync_logs_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "conversations" ADD CONSTRAINT "conversations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -299,3 +422,7 @@ ALTER TABLE "saved_companies" ADD CONSTRAINT "saved_companies_companyId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "notes" ADD CONSTRAINT "notes_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "workspaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notes" ADD CONSTRAINT "notes_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
