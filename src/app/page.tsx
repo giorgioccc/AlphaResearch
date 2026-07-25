@@ -1,10 +1,14 @@
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="text-center">
         <h1 className="text-4xl font-bold tracking-tight">AlphaResearch</h1>
         <p className="text-muted-foreground mt-2 text-lg">
