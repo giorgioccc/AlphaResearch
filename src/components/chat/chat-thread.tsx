@@ -6,8 +6,9 @@ import { DefaultChatTransport, type UIMessage } from 'ai';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatEmpty } from '@/components/chat/chat-empty';
-import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+import { Loader2, AlertCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface ChatThreadProps {
   conversationId: string;
@@ -93,11 +94,18 @@ export function ChatThread({
               />
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex items-center gap-2 px-4 py-3">
-                <Loader2 className="text-muted-foreground size-4 animate-spin" />
-                <span className="text-muted-foreground text-sm">
-                  Thinking...
-                </span>
+              <div className="flex items-center gap-3">
+                <Avatar size="sm" className="mt-0.5">
+                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-indigo-500 text-white">
+                    <Sparkles className="size-3.5" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="bg-muted flex items-center gap-2 rounded-2xl rounded-tl-sm px-4 py-3">
+                  <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
+                  <span className="text-muted-foreground text-sm">
+                    Thinking...
+                  </span>
+                </div>
               </div>
             )}
           </div>

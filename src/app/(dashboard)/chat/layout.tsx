@@ -6,11 +6,11 @@ export default function ChatLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       <aside className="hidden w-72 shrink-0 border-r md:block">
         <ConversationList />
       </aside>
-      <main className="flex-1">{children}</main>
+      <main className="min-w-0 flex-1 overflow-hidden">{children}</main>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # AlphaResearch
 
-> **Status: In Development (Phase 4 complete) — not production-ready yet.**
+> **Status: In Development (Phase 5 complete) — not production-ready yet.**
 
 AI-powered financial research platform that helps investors, analysts, and financial professionals research companies, analyze financial data, and generate investment insights.
 
@@ -17,6 +17,8 @@ AI-powered financial research platform that helps investors, analysts, and finan
 | PostgreSQL        | 17      | Primary database            |
 | Redis             | 7       | Cache                       |
 | Better Auth       | 1.x     | Authentication              |
+| AI SDK            | 7       | LLM streaming and chat      |
+| Groq (Llama 3.3)  | -       | AI inference (free tier)    |
 | Docker Compose    | -       | Local dev infrastructure    |
 | ESLint + Prettier | 9 / 3   | Linting and formatting      |
 | Husky             | 9       | Git hooks (pre-commit)      |
@@ -83,20 +85,37 @@ Dependencies point **down only**. The frontend never accesses the database direc
 - Optimized composite indexes based on query pattern analysis
 - Capacity planning for Year 1 (1K users) and Year 3 (10K users)
 
+### Phase 5 — AI Research Chat
+
+- Streaming AI chat powered by Groq (Llama 3.3 70B) via Vercel AI SDK 7
+- Conversation and message repositories with soft-delete support
+- Chat service layer with system prompt construction and token usage tracking
+- Automatic conversation titles: instant heuristic title, upgraded asynchronously by an LLM-generated title after the first response
+- Company-scoped conversations — link a conversation to a company to enrich the system prompt with its sector, industry, and ticker
+- Company search API and picker dialog, backed by a seeded reference dataset (12 companies)
+- Chat UI: conversation sidebar, streaming message thread, markdown rendering (GFM), auto-resizing input
+- UX polish: delete confirmation dialogs, toast notifications (sonner), retryable error states, loading skeletons, guided empty states
+
 ## Project Structure
 
 ```
 src/
   app/
     (auth)/              # Auth pages (login, register) — centered card layout
-    (dashboard)/         # Protected pages (dashboard) — header + nav layout
-    api/auth/[...all]/   # Better Auth API handler
-    layout.tsx           # Root layout
+    (dashboard)/         # Protected pages (dashboard, chat) — header + nav layout
+      chat/               # Chat layout (sidebar), empty state, [id] conversation page
+    api/
+      auth/[...all]/     # Better Auth API handler
+      chat/               # Streaming chat route handler
+      companies/          # Company search endpoint
+      conversations/      # Conversation CRUD endpoints
+    layout.tsx           # Root layout (theme provider, toaster)
     page.tsx             # Landing page
   components/
     auth/                # Login and register form components
+    chat/                # Conversation sidebar, chat thread, message list, new-conversation dialog
     layout/              # User nav, headers
-    ui/                  # shadcn/ui primitives (button, card, input, label, separator)
+    ui/                  # shadcn/ui primitives (button, dialog, command, alert-dialog, sonner, ...)
     theme-provider.tsx   # next-themes wrapper (class-based dark mode)
     theme-toggle.tsx     # Dark/light theme toggle button
   lib/
@@ -107,9 +126,12 @@ src/
     utils.ts             # Utility functions (cn)
   server/
     auth/                # Better Auth server configuration
+    repositories/        # Data access layer (conversation, message, company)
+    services/             # Business logic layer (chat, company)
 prisma/
   schema.prisma          # Database schema (15 models, 4 bounded contexts)
   migrations/            # Prisma migrations
+  seed.ts                 # Reference company seed data
 prisma.config.ts         # Prisma 7 config (project root — required location)
 docker/
   docker-compose.yml     # PostgreSQL + Redis
@@ -146,7 +168,7 @@ cd AlphaResearch
 npm install
 ```
 
-3. Copy environment variables:
+3. Copy environment variables and set `GROQ_API_KEY` (free key at [console.groq.com](https://console.groq.com)):
 
 ```bash
 cp .env.example .env.local
@@ -164,7 +186,13 @@ docker compose -f docker/docker-compose.yml up -d
 npx prisma migrate dev
 ```
 
-6. Start the dev server:
+6. Seed reference company data (used by company-scoped chat):
+
+```bash
+npm run db:seed
+```
+
+7. Start the dev server:
 
 ```bash
 npm run dev
@@ -186,6 +214,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | `npm run db:migrate`  | Run database migrations       |
 | `npm run db:push`     | Push schema without migration |
 | `npm run db:studio`   | Open Prisma Studio            |
+| `npm run db:seed`     | Seed reference company data   |
 
 ## Roadmap
 
@@ -195,7 +224,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | 2     | Project Bootstrap & Infra  | Done    |
 | 3     | Authentication             | Done    |
 | 4     | Database Design            | Done    |
-| 5     | AI Research Chat           | Next    |
-| 6     | Workspaces & Organization  | Planned |
+| 5     | AI Research Chat           | Done    |
+| 6     | Workspaces & Organization  | Next    |
 | 7     | Observability & Hardening  | Planned |
 | 8     | Reports, Alerts & Advanced | Planned |
