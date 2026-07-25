@@ -1,6 +1,6 @@
 # AlphaResearch
 
-> **Status: In Development (Phase 3 complete) — not production-ready yet.**
+> **Status: In Development (Phase 4 complete) — not production-ready yet.**
 
 AI-powered financial research platform that helps investors, analysts, and financial professionals research companies, analyze financial data, and generate investment insights.
 
@@ -43,7 +43,7 @@ Dependencies point **down only**. The frontend never accesses the database direc
 
 - Product vision, feature set, and user stories
 - System architecture with layered design and bounded contexts
-- Domain model with 12 database tables across 4 bounded contexts
+- Domain model with 15 database tables across 4 bounded contexts
 - Development roadmap (8 phases)
 
 ### Phase 2 — Project Bootstrap & Infrastructure
@@ -67,7 +67,21 @@ Dependencies point **down only**. The frontend never accesses the database direc
 - Dashboard layout with header, user nav, and sign-out
 - Landing page with AlphaResearch branding
 - Dark/light theme toggle (`next-themes`) with system preference detection
-- Initial database migration (all 12 schema tables)
+- Initial database migration (auth tables)
+
+### Phase 4 — Database Design
+
+- Schema redesign: 12 models expanded to 15 models with production-ready design
+- UUIDs for all primary keys (PostgreSQL native support)
+- New entities: AuditLog, NewsArticle, CompanyNewsArticle, DataSyncLog
+- Soft deletes (`deletedAt`) on Conversation, Report, and Note
+- Token usage tracking (`inputTokens`, `outputTokens`) on Message
+- Report versioning (`version` field)
+- Data provenance (`source` field) on FinancialData and StockPrice
+- SEC identifier (`cik`) on Company for stable cross-referencing
+- Data sync management with retry tracking (`retryCount`)
+- Optimized composite indexes based on query pattern analysis
+- Capacity planning for Year 1 (1K users) and Year 3 (10K users)
 
 ## Project Structure
 
@@ -94,7 +108,7 @@ src/
   server/
     auth/                # Better Auth server configuration
 prisma/
-  schema.prisma          # Database schema (12 models, 4 bounded contexts)
+  schema.prisma          # Database schema (15 models, 4 bounded contexts)
   migrations/            # Prisma migrations
 prisma.config.ts         # Prisma 7 config (project root — required location)
 docker/
@@ -103,10 +117,10 @@ docker/
 
 ## Database Schema
 
-Four bounded contexts with 12 models:
+Four bounded contexts with 15 models:
 
-- **Identity & Access** — User, Session, Account, Verification
-- **Company Data** — Company, FinancialData, StockPrice
+- **Identity & Access** — User, Session, Account, Verification, AuditLog
+- **Company Data** — Company, FinancialData, StockPrice, NewsArticle, CompanyNewsArticle, DataSyncLog
 - **AI Research** — Conversation, Message, Report
 - **Workspace** — Workspace, SavedCompany, Note
 
@@ -175,13 +189,13 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Roadmap
 
-| Phase | Name                         | Status  |
-| ----- | ---------------------------- | ------- |
-| 1     | Foundation & Planning        | Done    |
-| 2     | Project Bootstrap & Infra    | Done    |
-| 3     | Authentication               | Done    |
-| 4     | Company Data & Financial API | Next    |
-| 5     | AI Research Chat             | Planned |
-| 6     | Workspaces & Organization    | Planned |
-| 7     | Observability & Hardening    | Planned |
-| 8     | Reports, Alerts & Advanced   | Planned |
+| Phase | Name                       | Status  |
+| ----- | -------------------------- | ------- |
+| 1     | Foundation & Planning      | Done    |
+| 2     | Project Bootstrap & Infra  | Done    |
+| 3     | Authentication             | Done    |
+| 4     | Database Design            | Done    |
+| 5     | AI Research Chat           | Next    |
+| 6     | Workspaces & Organization  | Planned |
+| 7     | Observability & Hardening  | Planned |
+| 8     | Reports, Alerts & Advanced | Planned |

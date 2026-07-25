@@ -46,13 +46,13 @@ Dependencies point DOWN only. Never import from a layer above.
 
 ## Development Phases
 
-| Phase | Name                         | Status  |
-| ----- | ---------------------------- | ------- |
-| 1     | Foundation & Planning        | Done    |
-| 2     | Project Bootstrap & Infra    | Done    |
-| 3     | Authentication               | Done    |
-| 4     | Company Data & Financial API | Next    |
-| 5     | AI Research Chat (MVP done)  | Planned |
-| 6     | Workspaces & Organization    | Planned |
-| 7     | Observability & Hardening    | Planned |
-| 8     | Reports, Alerts & Advanced   | Planned |
+| Phase | Name                       | Status  |
+| ----- | -------------------------- | ------- |
+| 1     | Foundation & Planning      | Done    |
+| 2     | Project Bootstrap & Infra  | Done    |
+| 3     | Authentication             | Done    |
+| 4     | Database Design            | Done    |
+| 5     | AI Research Chat           | Next    |
+| 6     | Workspaces & Organization  | Planned |
+| 7     | Observability & Hardening  | Planned |
+| 8     | Reports, Alerts & Advanced | Planned |
