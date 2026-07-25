@@ -6,7 +6,8 @@ import { DefaultChatTransport, type UIMessage } from 'ai';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatEmpty } from '@/components/chat/chat-empty';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ChatThreadProps {
   conversationId: string;
@@ -41,7 +42,7 @@ export function ChatThread({
     [conversationId]
   );
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, regenerate } = useChat({
     transport,
     messages: initialMessages.map((m) => ({
       id: m.id,
@@ -104,8 +105,20 @@ export function ChatThread({
       </div>
 
       {error && (
-        <div className="mx-4 mb-2 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
-          {error.message || 'Something went wrong. Please try again.'}
+        <div className="mx-4 mb-2 flex items-center gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
+          <AlertCircle className="size-4 shrink-0" />
+          <span className="flex-1">
+            {error.message || 'Something went wrong. Please try again.'}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 shrink-0 text-red-600 hover:text-red-700 dark:text-red-400"
+            onClick={() => regenerate()}
+          >
+            <RotateCcw className="mr-1 size-3" />
+            Retry
+          </Button>
         </div>
       )}
 

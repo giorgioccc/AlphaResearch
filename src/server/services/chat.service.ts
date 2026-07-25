@@ -1,9 +1,11 @@
 import { groq } from '@ai-sdk/groq';
-import { streamText, type ModelMessage } from 'ai';
+import { streamText, generateText, type ModelMessage } from 'ai';
 import { conversationRepository } from '@/server/repositories/conversation.repository';
 import { messageRepository } from '@/server/repositories/message.repository';
 
 const MODEL = groq('llama-3.3-70b-versatile');
+const UNTITLED = 'New conversation';
+const MAX_HEURISTIC_LENGTH = 50;
 
 const BASE_SYSTEM_PROMPT = `You are AlphaResearch, an AI financial research assistant. You help investors, analysts, and students research companies, analyze financial data, and understand market concepts.
 
@@ -37,6 +39,36 @@ ${details}.
 Focus your responses on this company when relevant, but answer general financial questions too.`;
 }
 
+function truncateToTitle(text: string): string {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= MAX_HEURISTIC_LENGTH) return cleaned;
+  const truncated = cleaned.slice(0, MAX_HEURISTIC_LENGTH);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return (lastSpace > 20 ? truncated.slice(0, lastSpace) : truncated) + '…';
+}
+
+async function generateTitle(
+  conversationId: string,
+  userId: string,
+  userMessage: string
+): Promise<void> {
+  try {
+    const { text } = await generateText({
+      model: MODEL,
+      system:
+        'Generate a concise title (3-6 words) for a conversation that starts with the following message. Return ONLY the title, no quotes, no punctuation at the end.',
+      messages: [{ role: 'user', content: userMessage }],
+      maxOutputTokens: 20,
+    });
+    const title = text.trim().replace(/[."]+$/g, '');
+    if (title) {
+      await conversationRepository.updateTitle(conversationId, userId, title);
+    }
+  } catch {
+    // LLM title generation failed — heuristic title remains as fallback
+  }
+}
+
 export const chatService = {
   async getConversations(userId: string) {
     return conversationRepository.findByUserId(userId);
@@ -46,8 +78,12 @@ export const chatService = {
     return conversationRepository.findById(id, userId);
   },
 
-  async createConversation(userId: string, title: string, companyId?: string) {
-    return conversationRepository.create({ userId, title, companyId });
+  async createConversation(userId: string, title?: string, companyId?: string) {
+    return conversationRepository.create({
+      userId,
+      title: title || UNTITLED,
+      companyId,
+    });
   },
 
   async deleteConversation(id: string, userId: string) {
@@ -65,6 +101,16 @@ export const chatService = {
     );
     if (!conversation) {
       throw new Error('Conversation not found');
+    }
+
+    const isFirstMessage = conversation.messages.length === 0;
+
+    if (isFirstMessage) {
+      await conversationRepository.updateTitle(
+        conversationId,
+        userId,
+        truncateToTitle(userContent)
+      );
     }
 
     await messageRepository.create({
@@ -93,6 +139,10 @@ export const chatService = {
           inputTokens: usage.inputTokens ?? 0,
           outputTokens: usage.outputTokens ?? 0,
         });
+
+        if (isFirstMessage) {
+          generateTitle(conversationId, userId, userContent);
+        }
       },
     });
 

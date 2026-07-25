@@ -1,10 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface ConversationItemProps {
   id: string;
@@ -25,6 +37,12 @@ export function ConversationItem({
 }: ConversationItemProps) {
   const pathname = usePathname();
   const isActive = pathname === `/chat/${id}`;
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleConfirmDelete() {
+    setIsDeleting(true);
+    onDelete(id);
+  }
 
   return (
     <div
@@ -44,18 +62,40 @@ export function ConversationItem({
           {messageCount} messages · {new Date(updatedAt).toLocaleDateString()}
         </p>
       </Link>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7 shrink-0 opacity-0 group-hover:opacity-100"
-        onClick={(e) => {
-          e.preventDefault();
-          onDelete(id);
-        }}
-      >
-        <Trash2 className="size-3.5" />
-        <span className="sr-only">Delete conversation</span>
-      </Button>
+
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 shrink-0 opacity-0 group-hover:opacity-100"
+              disabled={isDeleting}
+            />
+          }
+        >
+          <Trash2 className="size-3.5" />
+          <span className="sr-only">Delete conversation</span>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &ldquo;{title}&rdquo; and all its
+              messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

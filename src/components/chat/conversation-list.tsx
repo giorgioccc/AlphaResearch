@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { ConversationItem } from '@/components/chat/conversation-item';
+import { NewConversationDialog } from '@/components/chat/new-conversation-dialog';
 
 interface Conversation {
   id: string;
@@ -34,25 +34,14 @@ export function ConversationList() {
     fetchConversations();
   }, [fetchConversations]);
 
-  async function handleNewConversation() {
-    const res = await fetch('/api/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'New conversation' }),
-    });
-
-    if (res.ok) {
-      const conversation = (await res.json()) as { id: string };
-      await fetchConversations();
-      router.push(`/chat/${conversation.id}`);
-    }
-  }
-
   async function handleDelete(id: string) {
     const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
     if (res.ok) {
+      toast.success('Conversation deleted');
       await fetchConversations();
       router.push('/chat');
+    } else {
+      toast.error('Failed to delete conversation');
     }
   }
 
@@ -60,25 +49,23 @@ export function ConversationList() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h2 className="text-sm font-semibold">Conversations</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          onClick={handleNewConversation}
-        >
-          <Plus className="size-4" />
-          <span className="sr-only">New conversation</span>
-        </Button>
+        <NewConversationDialog onCreated={fetchConversations} />
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
-          <div className="text-muted-foreground px-3 py-4 text-center text-sm">
-            Loading...
+          <div className="flex flex-col gap-2 p-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse rounded-lg px-3 py-2">
+                <div className="bg-muted mb-2 h-4 w-3/4 rounded" />
+                <div className="bg-muted h-3 w-1/2 rounded" />
+              </div>
+            ))}
           </div>
         ) : conversations.length === 0 ? (
-          <div className="text-muted-foreground px-3 py-4 text-center text-sm">
-            No conversations yet
+          <div className="text-muted-foreground px-3 py-8 text-center text-sm">
+            <p>No conversations yet.</p>
+            <p className="mt-1">Click the + button to start one.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-1">

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
   const conversation = await chatService.createConversation(
     session.user.id,
-    body.title ?? 'New conversation',
+    body.title,
     body.companyId
   );
 
